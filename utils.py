@@ -1,5 +1,5 @@
 import sys
-from asyncio import Lock
+from threading import Lock
 import random
 import time
 
@@ -62,16 +62,20 @@ class Writer(object):
     specific place on the screen, defined at instantiation.
     This is the glue between blessings and progressbar.
     """
-    def __init__(self, location):
+    def __init__(self, term, height):
         """
         Input: location - tuple of ints (x, y), the position
                           of the bar in the terminal
         """
-        self.location = location
+        self.terminal = term
+        self.height = height
 
     def write(self, string):
-        with term.location(*self.location):
-            print(string, end="")
+        with self.terminal.location(0, self.height):
+            print(string.replace("\n", ""), end = "")
+    
+    def flush(self):
+        sys.stdout.flush()
 
 class EWriter(object):
     """Create an object with a write method that writes to a
@@ -86,14 +90,14 @@ class EWriter(object):
         self.terminal = term
 
     def write(self, string):
-        with self.terminal.location(0, self.terminal.height - 1):
+        with self.terminal.location(0, self.terminal.height - 2):
             print(string.replace("\n", ""), end = "")
     
     def flush(self):
         sys.stdout.flush()
 
 
-class safe_list(object):
+class SafeList(object):
 
     def __init__(self):
         self.lock = Lock()
@@ -102,13 +106,36 @@ class safe_list(object):
     def __len__(self):
         return len(self.list)
 
-    def add(self, item):
-        with self.lock:
-            self.list.append(item)
+    def append(self, item):
+        self.lock.acquire()
+        self.list.append(item)
+        self.lock.release()
     
     def randpop(self):
-        with self.lock:
-            if len(self.list)==0:
-                return None
-            idx = random.randint(0, len(self.list)-1)
-            return self.list.pop(idx)
+        self.lock.acquire()
+        if len(self.list)==0:
+            self.lock.release()
+            return None
+        idx = random.randint(0, len(self.list)-1)
+        res = self.list.pop(idx)
+        self.lock.release()
+        return res
+
+
+class SafeValue(object):
+
+    def __init__(self, init_val, comp):
+        self.lock = Lock()
+        self.msg = ""
+        self.comp = comp
+        self.val = init_val
+
+    def update(self, val, msg):
+        self.lock.acquire()
+        if self.comp(val, self.val):
+            self.val = val
+            self.msg = msg
+        self.lock.release()
+    
+    def get(self):
+        return self.msg

@@ -6,41 +6,48 @@ import os, sys
 from blessings import Terminal
 import torch
 from time import localtime, strftime
-from utils import display_time, safe_list, EWriter
+from utils import display_time, SafeList, EWriter, SafeValue
 import signal
 from tqdm import tqdm
 import pickle
-try:
-    from yaml import CLoader as Loader, CDumper as Dumper
-except ImportError:
-    from yaml import Loader, Dumper
+from worker import Worker
+# import yaml
+READ_INTERVAL = 1200
 
 
 class Master:
 
-    def __init__(self, que, done_list, term, start_time, opt):
-        self.q=que
+    def __init__(self, q, bestScore, done_list, term, start_time, opt):
         self.done_list=done_list
         self.terminal = term
         self.start_time = start_time
-        self.ISread=False
         self.opt = opt
         self.writer = EWriter(term)
         self.loaded = []
+        self.height = term.height
+        self.width = term.width
+        self.bestScore = bestScore
+        self.q = q
 
         if not os.path.exists(self.opt.output_dir):
             os.makedirs(self.opt.output_dir)
         if not os.path.exists(self.opt.snapshot_dir):
             os.makedirs(self.opt.snapshot_dir)
+        if not os.path.exists(self.opt.tb_dir):
+            os.makedirs(self.opt.tb_dir)
 
         if os.path.exists(os.path.join(self.opt.output_dir,"done_list.pkl")):
             with open(os.path.join(self.opt.output_dir,"done_list.pkl"), "wb") as fp:
                 self.done_list.list=pickle.load(fp)
 
     def print(self, s):
+        if self.height!=self.terminal.height or self.width!=self.terminal.width:
+            self.height = self.terminal.height
+            self.width = self.terminal.width
+            print(self.terminal.clear)
         stat_string = "Que size: {}".format(len(self.q.list))
         timestring = "Uptime: " + display_time(time.time() - self.start_time)
-        with self.terminal.location(0, self.terminal.height - 2):
+        with self.terminal.location(0, self.terminal.height - 1):
             print(self.terminal.clear_eol, end = "")
             print(timestring + " | " + stat_string + " | " + str(s), end = "")
             sys.stdout.flush()
@@ -52,47 +59,10 @@ class Master:
             sys.stdout.flush()
 
     def run(self):
-        self.print('Master thread initiated. Scanning for jobs...')
-        self.read()
-        c = 0
+        self.print('Master thread initiated.')
         while(True):
             time.sleep(1)
-            c+=1
-            self.print('Time until next scan: {} s'.format(600-c))
-            if c==600:
-                self.print('Scanning for new jobs.')
-                self.read()
-                c = 0
-    
-    def read(self):
-        import re, yaml
-
-        for root, subFolders, files in tqdm(list(os.walk(os.path.join(self.opt.command_dir,"children"))), ncols = self.terminal.width-2, file = self.writer):
-            if len(files) >= 1:
-                for f in files:
-                    if not re.search('.*\.yaml$',f):
-                        continue
-                    name = f[:-5]
-                    if name in self.loaded or name in self.done_list:
-                        continue
-                    d = self.readyaml(os.path.join(root,f))
-                    with open(os.path.join(self.opt.output_dir, name, "conf.yaml"),"w") as fd:
-                        fd.write(yaml.dump(d, default_flow_style=False))
-                    self.q.append(name)
-                    self.loaded.append(name)
-
-        # print(term.move(0,0)+term.move_up)
-
-    def readyaml(self, path):
-        import yaml
-        dy = yaml.load(path)
-        d = {}
-        if "parents" in dy:
-            for p in dy['parents']:
-                dp = self.readyaml(os.path.join(self.opt.command_dir, "parents", p+".yaml"))
-                d.update(dp)
-        d.update(dy)
-        return d
+            self.print(self.bestScore.get())
 
     def signal_handler(self, sig, frame):
         self.print('Exiting... Saving progress...')
@@ -100,6 +70,78 @@ class Master:
             with open(os.path.join(self.opt.output_dir,"done_list.pkl"), "wb") as fp:
                 pickle.dump(self.done_list.list,fp)
         os._exit(0)
+
+class Reader:
+
+    def __init__(self, que, done_list, term, start_time, opt):
+        self.q=que
+        self.done_list=done_list
+        self.terminal = term
+        self.start_time = start_time
+        self.ISread=False
+        self.opt = opt
+        self.writer = EWriter(term)
+        self.loaded = []
+        self.height = term.height
+        self.width = term.width
+
+    def print(self, s):
+        with self.terminal.location(0, self.terminal.height - 3):
+            print(self.terminal.clear_eol, end = "")
+            print(str(s), end = "")
+            sys.stdout.flush()
+
+    def dbgprint(self, *s):
+        with self.terminal.location(0, self.terminal.height - 4):
+            print(self.terminal.clear_eol, end = "")
+            print(*s, end = "")
+            sys.stdout.flush()
+
+    def run(self):
+        self.print('Reader thread initiated. Scanning for jobs...')
+        self.read()
+        c = 0
+        while(True):
+            time.sleep(1)
+            c+=1
+            self.print('Time until next scan: {} s'.format(READ_INTERVAL-c))
+            if c==READ_INTERVAL:
+                self.print('Scanning for new jobs.')
+                self.read()
+                c = 0
+    
+    def read(self):
+        import re, yaml
+        for root, subFolders, files in list(os.walk(self.opt.command_dir)):
+            if len(files) >= 1:
+                for f in tqdm(files, file = self.writer):
+                    if not re.search('.*\.yml$',f):
+                        continue
+                    name = f[:-5]
+                    if name in self.loaded or name in self.done_list.list:
+                        continue
+                    d = yaml.load(open(os.path.join(root,f)), Loader=yaml.FullLoader) # self.readyaml(os.path.join(root,f))
+                    if not os.path.exists(os.path.join(self.opt.output_dir, name)):
+                        os.makedirs(os.path.join(self.opt.output_dir, name))
+                    with open(os.path.join(self.opt.output_dir, name, "conf.yml"),"w") as fd:
+                        fd.write(yaml.dump(d, default_flow_style=False))
+                    self.q.append(name)
+                    self.loaded.append(name)
+                    self.ISread = True
+
+        # print(term.move(0,0)+term.move_up)
+
+    # def readyaml(self, path):
+    #     import yaml
+    #     dy = yaml.load(path)
+    #     d = {}
+    #     if "parents" in dy:
+    #         for p in dy['parents']:
+    #             dp = self.readyaml(os.path.join(self.opt.command_dir, "parents", p+".yml"))
+    #             d.update(dp)
+    #     d.update(dy)
+    #     return d
+
 
 if __name__ == '__main__':
 
@@ -144,8 +186,10 @@ if __name__ == '__main__':
     else:
         T = time.strptime(opt.timestamp, "%Y_%m_%d_%H_%M_%S")
         timestring = opt.timestamp
+    timestring = "grid_search_"+timestring
 
     opt.snapshot_dir = os.path.join(opt.output_dir, timestring, "snap")
+    opt.tb_dir = os.path.join(opt.output_dir, timestring, "TensorBoard")
     opt.output_dir = os.path.join(opt.output_dir, timestring, "out")
 
     if opt.gpu is None:
@@ -155,23 +199,30 @@ if __name__ == '__main__':
     gpu_job_list=[gpu_ID for x in range(opt.threads) for gpu_ID in opt.gpu]
     num_workers = min(multiprocessing.cpu_count(), len(gpu_job_list))
 
-    q = safe_list()
-    done = safe_list()
-    master=Master(q, done, term, T, opt)
+    q = SafeList()
+    done = SafeList()
+    val = SafeValue(0, lambda x, y: x>=y)
+    master=Master(q, val, done, term, T, opt)
     signal.signal(signal.SIGINT, master.signal_handler)
+    reader=Reader(q, done, term, T, opt)
+    # signal.signal(signal.SIGINT, reader.signal_handler)
 
     master_thread=threading.Thread(target=(lambda: master.run()))
     master_thread.start()
+    reader_thread=threading.Thread(target=(lambda: reader.run()))
+    reader_thread.start()
 
-    while(not master.ISread):
+    while(not reader.ISread):
         time.sleep(1)
 
-    abs_model = os.path.abspath(model_dir)
-    abs_snap = os.path.abspath(snapshot_dir)
-    abs_out = os.path.abspath(output_dir)
+    abs_model = os.path.abspath(opt.model_dir)
+    abs_snap = os.path.abspath(opt.snapshot_dir)
+    abs_tb = os.path.abspath(opt.tb_dir)
+    abs_out = os.path.abspath(opt.output_dir)
 
+    workers = []
     for i in range(num_workers):
-        workers.append(Worker(gpu_list[i], done, q, term, i, logging, abs_model, abs_out, abs_snap))
+        workers.append(Worker(gpu_job_list[i], q, done, term, i, logging, val, abs_model, abs_out, abs_snap, abs_tb))
 
     for worker in workers:
         worker_work= lambda: worker.work()

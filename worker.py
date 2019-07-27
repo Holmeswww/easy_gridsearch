@@ -3,7 +3,8 @@ PATTERN = "#####"
 
 class Worker_Base:
 
-    def __init__(self, gpu_id, que, done_list, terminal, id, logging):
+    def __init__(self, gpu_id, que, done_list, terminal, id, logging, best_val):
+        from utils import Writer
         self.gpu_id=gpu_id
         self.que = que
         self.done_list = done_list
@@ -11,11 +12,24 @@ class Worker_Base:
         self.id = id
         self.cmdprefix = ""
         self.log = logging
+        self.best_val = best_val
+        self.writer = Writer(terminal, 2 + self.id * 2)
     
     def print(self,*args):
         with self.terminal.location(0, 1 + self.id * 2):
             print(self.terminal.clear_eol, end = "")
             print(self.cmdprefix+" |", *args, end = "")
+    
+    def print_progress(self,prog):
+        if int(prog.split("/")[0])==0:
+            from tqdm import tqdm
+            self.Pbar = tqdm(total = int(prog.split("/")[1]), file = self.writer)
+            self.current_progress = 0
+        elif int(prog.split("/")[0]) == int(prog.split("/")[1]):
+            self.Pbar.close()
+        else:
+            self.Pbar.update(int(prog.split("/")[0])-self.current_progress)
+            self.current_progress=int(prog.split("/")[0])
 
     def get_hook(self,command):
         # Returns a process hook.
@@ -25,6 +39,7 @@ class Worker_Base:
         subprocess_env = os.environ.copy()
         subprocess_env["CUDA_VISIBLE_DEVICES"] = str(self.gpu_id)
         process = Popen(command, shell=True, stdout=PIPE, stderr=STDOUT, env=subprocess_env)
+        self.log.info(command)
         return process
     
     def set_prefix(self, string):
@@ -37,7 +52,7 @@ class Worker_Base:
             if not line:
                 self.log.debug("\n".join(buff))
                 return
-            buff.append(line.rstrip())
+            buff.append(line.decode('utf-8').rstrip())
 
     def execute(self, command):
         import re
@@ -46,52 +61,62 @@ class Worker_Base:
             line = process.stdout.readline()
             if not line:
                 break
-            line = line.rstrip()
+            line = line.decode('utf-8').rstrip()
             m = re.search(PATTERN+'.*'+PATTERN, line)
             if not m is None:
                 string = (m.group(0)[len(PATTERN):-len(PATTERN)]).split("$")
                 caption = string[2]
                 progress = string[1]
-                self.print(caption)
+                if string[3].strip() != "":
+                    value = float(string[3])
+                    self.best_val.update(value, caption)
+                else:
+                    self.print(caption)
+                    if progress!="":
+                        self.print_progress(progress)
             if line.find("Traceback (most recent") >= 0:
                 self.print("Errored")
                 self.log_error(process, line)
                 return None
 
-        if (exitCode == 0):
-            return True
-        else:
-            return None
+        return True
+        # if (exitCode == 0):
+        #     return True
+        # else:
+        #     return None
 
 
 class Worker(Worker_Base):
-    def __init__(self,gpu_id,que,done_list,terminal,id,logging,model_dir,output_dir,snapshot_dir):
-        super().__init__(gpu_id,que,done_list,terminal,id,logging)
+    def __init__(self,gpu_id,que,done_list,terminal,id,logging, best_val, model_dir, output_dir, snapshot_dir, tb_dir):
+        super().__init__(gpu_id,que,done_list,terminal,id,logging, best_val)
         self.model_dir = model_dir
         self.output_dir = output_dir
         self.snapshot_dir = snapshot_dir
+        self.tb_dir = tb_dir
         self.print("Worker for GPU:", gpu_id,"INITIATED")
 
-  def work(self):
-      self.print("Worker for GPU:", gpu_id,"LAUNCHED")
-      import os
-      while(True):                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
-          name = self.que.randpop()
-          if name is None:
-              time.sleep(120)
-              continue
-          self.set_prefix("Running {}".format(name))
+    def work(self):
+        self.print("Worker for GPU:", self.gpu_id,"LAUNCHED")
+        import os
+        import time
+        while(True):                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+            name = self.que.randpop()
+            if name is None:
+                self.print("Worker for GPU:", self.gpu_id,"Waiting")
+                time.sleep(120)
+                continue
+            self.set_prefix("GPU:{} running {}".format(self.gpu_id,name))
 
-          if not os.path.exists(os.path.join(self.output_dir,name)):
-              os.makedirs(os.path.join(self.output_dir,name))
-          
-          if not os.path.exists(os.path.join(self.snapshot_dir,name)):
-              os.makedirs(os.path.join(self.snapshot_dir,name))
+            if not os.path.exists(os.path.join(self.output_dir,name)):
+                os.makedirs(os.path.join(self.output_dir,name))
 
-          cmd = ' '.join(["cd", self.model_dir, ";", "python", "main.py", "--config={}.yaml".format(name)])
-          cmd += " --output_dir=\"{}\"".format(os.path.join(self.output_dir,name))
-          cmd += " --snapshot_dir=\"{}\"".format(os.path.join(self.snapshot_dir,name))
-          
+            if not os.path.exists(os.path.join(self.snapshot_dir,name)):
+                os.makedirs(os.path.join(self.snapshot_dir,name))
 
-          self.execute(cmd)
-          self.done_list.append(name)
+            cmd = ' '.join(["cd", self.model_dir, ";", "python", "main.py", "--id={}".format(name)])
+            cmd += " --output_dir=\"{}\"".format(os.path.join(self.output_dir,name))
+            cmd += " --snapshot_dir=\"{}\"".format(self.snapshot_dir)
+            cmd += " --tb_dir=\"{}\"".format(self.tb_dir)
+            
+            self.execute(cmd)
+            self.done_list.append(name)

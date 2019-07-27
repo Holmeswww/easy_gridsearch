@@ -1,6 +1,12 @@
-def print_(v, progress = None, caption = None):
+def print_(v="", progress = "", caption = ""):
     string = "#####"
-    if progress is not None or caption is not None:
+    if progress != "" or caption != "":
         print(string+v+"$"+progress+"$"+caption+string)
     else:
-        print(v)
+        return
+        # print(v)
+
+def print_normal(v=None, progress = None, caption = None):
+    if v is None:
+        return
+    print(v)
