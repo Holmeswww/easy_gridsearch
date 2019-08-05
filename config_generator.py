@@ -19,7 +19,7 @@ CONF['ImageSize'] = [32,]
 CONF['Dset'] = ['cifar10',]
 CONF['DataRoot'] = ['/DataSet/',]
 CONF['BS'] = [64,32,16]
-CONF['niter'] = [900,]
+CONF['niter'] = [360,]
 CONF['nz'] = [64,100,128,200]
 CONF['LAMBDA'] = [5,10,20,30]
 CONF['PPO_iters'] = [1, 5, 10]
@@ -30,6 +30,7 @@ CONF['D_SIZE'] = [32, 64, 128, 200]
 CONF['LR'] = [1e-4, 2e-4, 1e-3, 1e-2]
 CONF['beta1'] = [0, 0.5, 0.9, 0.95, 0.99]
 CONF['beta2'] = [0, 0.5, 0.9, 0.95, 0.99, 0.995, 0.999]
+CONF['checkpoints'] = [[(1/28, 5.439), (3/28, 6.16), (5/28, 6.58), (7/28, 7.0), (10/28, 7.4)],]
 
 try:
     import shutil

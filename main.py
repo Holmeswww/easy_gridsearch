@@ -157,9 +157,9 @@ if __name__ == '__main__':
                         help='GPUs to use.')
     parser.add_argument('--threads', type=int, default=1,
                         help='threads_per_GPU')
-    parser.add_argument('--model_dir', type=str,
+    parser.add_argument('--model_dir', type=str, required=True,
                         help='directory of model to run (main.py)')
-    parser.add_argument('--command_dir', type=str, default=".",
+    parser.add_argument('--command_dir', type=str, required=True,
                         help='directory of commands')
     # parser.add_argument('--snapshot_dir', type=str, default="./viz",
     #                     help='A snapshot directory for direct visualization')
@@ -178,6 +178,13 @@ if __name__ == '__main__':
 
 
     print(term.move(0,0) + "Welcome to easy_gridsearch! I'm able to see {} GPUs and {} CPUs.".format(torch.cuda.device_count(), multiprocessing.cpu_count()))
+
+    while(not os.path.exists(opt.command_dir)):
+        with term.location(0, term.height - 1):
+            print(term.clear_eol, end = "")
+            print("waiting for command folder to be created..", end = "")
+            sys.stdout.flush()
+        time.sleep(10)
 
     # time.sleep(3)
     if opt.timestamp is None:
