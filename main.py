@@ -37,8 +37,12 @@ class Master:
             os.makedirs(self.opt.tb_dir)
 
         if os.path.exists(os.path.join(self.opt.output_dir,"done_list.pkl")):
-            with open(os.path.join(self.opt.output_dir,"done_list.pkl"), "wb") as fp:
+            with open(os.path.join(self.opt.output_dir,"done_list.pkl"), "rb") as fp:
                 self.done_list.list=pickle.load(fp)
+
+        if os.path.exists(os.path.join(self.opt.output_dir,"best_score.pkl")):
+            with open(os.path.join(self.opt.output_dir,"best_score.pkl"), "rb") as fp:
+                self.bestScore.val=pickle.load(fp)
 
     def print(self, s):
         if self.height!=self.terminal.height or self.width!=self.terminal.width:
@@ -69,6 +73,8 @@ class Master:
         if len(self.done_list.list)>0:
             with open(os.path.join(self.opt.output_dir,"done_list.pkl"), "wb") as fp:
                 pickle.dump(self.done_list.list,fp)
+        with open(os.path.join(self.opt.output_dir,"best_score.pkl"), "wb") as fp:
+            pickle.dump(self.bestScore.val,fp)
         os._exit(0)
 
 class Reader:
@@ -111,21 +117,16 @@ class Reader:
                 c = 0
     
     def read(self):
-        import re, yaml
+        import re
         for root, subFolders, files in list(os.walk(self.opt.command_dir)):
             if len(files) >= 1:
                 for f in tqdm(files, file = self.writer):
                     if not re.search('.*\.yml$',f):
                         continue
-                    name = f[:-5]
+                    name = f[:-4]
                     if name in self.loaded or name in self.done_list.list:
                         continue
-                    d = yaml.load(open(os.path.join(root,f)), Loader=yaml.FullLoader) # self.readyaml(os.path.join(root,f))
-                    if not os.path.exists(os.path.join(self.opt.output_dir, name)):
-                        os.makedirs(os.path.join(self.opt.output_dir, name))
-                    with open(os.path.join(self.opt.output_dir, name, "conf.yml"),"w") as fd:
-                        fd.write(yaml.dump(d, default_flow_style=False))
-                    self.q.append(name)
+                    self.q.append((name, root))
                     self.loaded.append(name)
                     self.ISread = True
 
