@@ -110,9 +110,6 @@ class Worker(Worker_Base):
             if not os.path.exists(os.path.join(self.output_dir,name)):
                 os.makedirs(os.path.join(self.output_dir,name))
 
-            if not os.path.exists(os.path.join(self.snapshot_dir,name)):
-                os.makedirs(os.path.join(self.snapshot_dir,name))
-
             cmd = ' '.join(["cd", self.model_dir, ";", "python", "main.py", "--id={}".format(name)])
             cmd += " --output_dir=\"{}\"".format(os.path.join(self.output_dir,name))
             cmd += " --snapshot_dir=\"{}\"".format(self.snapshot_dir)
