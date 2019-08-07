@@ -186,6 +186,12 @@ if __name__ == '__main__':
             print("waiting for command folder to be created..", end = "")
             sys.stdout.flush()
         time.sleep(10)
+    
+    if not os.path.exists("overrides.yml"):
+        import yaml
+        overrides = yaml.load(open("overrides.yml"), Loader=yaml.FullLoader)
+    else:
+        overrides = dict()
 
     # time.sleep(3)
     if opt.timestamp is None:
@@ -230,7 +236,7 @@ if __name__ == '__main__':
 
     workers = []
     for i in range(num_workers):
-        workers.append(Worker(gpu_job_list[i], q, done, term, i, logging, val, abs_model, abs_out, abs_snap, abs_tb))
+        workers.append(Worker(gpu_job_list[i], q, done, term, i, logging, val, overrides, abs_model, abs_out, abs_snap, abs_tb))
 
     for worker in workers:
         worker_work= lambda: worker.work()

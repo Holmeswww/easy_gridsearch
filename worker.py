@@ -89,12 +89,13 @@ class Worker_Base:
 
 
 class Worker(Worker_Base):
-    def __init__(self,gpu_id,que,done_list,terminal,id,logging, best_val, model_dir, output_dir, snapshot_dir, tb_dir):
+    def __init__(self,gpu_id,que,done_list,terminal,id,logging, best_val, overrides, model_dir, output_dir, snapshot_dir, tb_dir):
         super().__init__(gpu_id,que,done_list,terminal,id,logging, best_val)
         self.model_dir = model_dir
         self.output_dir = output_dir
         self.snapshot_dir = snapshot_dir
         self.tb_dir = tb_dir
+        self.overrides=overrides
         self.print("Worker for GPU:", gpu_id,"INITIATED")
 
     def work(self):
@@ -110,6 +111,7 @@ class Worker(Worker_Base):
             d = yaml.load(open(os.path.join(root,"{}.yml".format(name))), Loader=yaml.FullLoader) # self.readyaml(os.path.join(root,f))
             if not os.path.exists(os.path.join(self.output_dir, name)):
                 os.makedirs(os.path.join(self.output_dir, name))
+            d.update(self.overrides)
             with open(os.path.join(self.output_dir, name, "conf.yml"),"w") as fd:
                 fd.write(yaml.dump(d, default_flow_style=False))
             if not os.path.exists(os.path.join(self.output_dir,name)):

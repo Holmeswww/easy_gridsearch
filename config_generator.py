@@ -58,7 +58,7 @@ with tqdm(total = len(L)) as pbar:
                 else:
                     D[key] = L[idx][i]
             with open('conf/{}/{}.yml'.format(server, idx), 'w') as outfile:
-                yaml.dump(D, outfile, default_flow_style=False)
+                yaml.dump(D, outfile)
             idx+=1
             pbar.update(1)
         start = idx
