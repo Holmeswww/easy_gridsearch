@@ -51,6 +51,7 @@ class Master:
             print(self.terminal.clear)
         stat_string = "Que size: {} | Done size: {}".format(len(self.q.list), len(self.done_list.list))
         timestring = "Uptime: " + display_time(time.time() - self.start_time)
+        timestring += " | Avg job time: {}".format("inf" if len(self.done_list.list)==0 else display_time((time.time() - self.start_time)//len(self.done_list.list)))
         with self.terminal.location(0, self.terminal.height - 1):
             print(self.terminal.clear_eol, end = "")
             print(timestring + " | " + stat_string + " | " + str(s), end = "")
