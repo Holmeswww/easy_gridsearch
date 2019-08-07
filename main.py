@@ -49,7 +49,7 @@ class Master:
             self.height = self.terminal.height
             self.width = self.terminal.width
             print(self.terminal.clear)
-        stat_string = "Que size: {}".format(len(self.q.list))
+        stat_string = "Que size: {} | Done size: {}".format(len(self.q.list), len(self.done_list.list))
         timestring = "Uptime: " + display_time(time.time() - self.start_time)
         with self.terminal.location(0, self.terminal.height - 1):
             print(self.terminal.clear_eol, end = "")
