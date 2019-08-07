@@ -243,4 +243,4 @@ if __name__ == '__main__':
         worker_work= lambda: worker.work()
         t = threading.Thread(target=(worker_work))
         t.start()
-        time.sleep(10)
+        time.sleep(60)
