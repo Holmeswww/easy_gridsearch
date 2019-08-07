@@ -187,7 +187,7 @@ if __name__ == '__main__':
             sys.stdout.flush()
         time.sleep(10)
     
-    if not os.path.exists("overrides.yml"):
+    if os.path.exists("overrides.yml"):
         import yaml
         overrides = yaml.load(open("overrides.yml"), Loader=yaml.FullLoader)
     else:
