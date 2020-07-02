@@ -42,7 +42,8 @@ class Master:
 
         if os.path.exists(os.path.join(self.opt.output_dir,"best_score.pkl")):
             with open(os.path.join(self.opt.output_dir,"best_score.pkl"), "rb") as fp:
-                self.bestScore.val=pickle.load(fp)
+                self.bestScore.val=pickle.load(fp)['val']
+                self.bestScore.msg=pickle.load(fp)['msg']
 
     def print(self, s):
         if self.height!=self.terminal.height or self.width!=self.terminal.width:
@@ -69,13 +70,16 @@ class Master:
             time.sleep(1)
             self.print(self.bestScore.get())
 
-    def signal_handler(self, sig, frame):
-        self.print('Exiting... Saving progress...')
+    def save(self):
         if len(self.done_list.list)>0:
             with open(os.path.join(self.opt.output_dir,"done_list.pkl"), "wb") as fp:
                 pickle.dump(self.done_list.list,fp)
         with open(os.path.join(self.opt.output_dir,"best_score.pkl"), "wb") as fp:
-            pickle.dump(self.bestScore.val,fp)
+            pickle.dump({'val':self.bestScore.val,'msg':self.bestScore.msg},fp)
+
+    def signal_handler(self, sig, frame):
+        self.print('Exiting... Saving progress...')
+        self.save()
         os._exit(0)
 
 class Reader:
@@ -167,6 +171,8 @@ if __name__ == '__main__':
     #                     help='A snapshot directory for direct visualization')
     parser.add_argument('--output_dir', type=str, default=".",
                         help='Output directory')
+    parser.add_argument('--model_file', type=str, default="main.py",
+                        help='main file name')
     parser.add_argument('--timestamp', type=str, default=None,
                         help='timestamp to resume')
     parser.add_argument('--fresh', type=int, default=0,
@@ -199,7 +205,7 @@ if __name__ == '__main__':
         T = time.time()
         timestring = strftime("%Y_%m_%d_%H_%M_%S", localtime(T))
     else:
-        T = time.strptime(opt.timestamp, "%Y_%m_%d_%H_%M_%S")
+        T = time.mktime(time.strptime(opt.timestamp, "%Y_%m_%d_%H_%M_%S"))
         timestring = opt.timestamp
     timestring = "grid_search_"+timestring
 
@@ -237,7 +243,7 @@ if __name__ == '__main__':
 
     workers = []
     for i in range(num_workers):
-        workers.append(Worker(gpu_job_list[i], q, done, term, i, logging, val, overrides, abs_model, abs_out, abs_snap, abs_tb))
+        workers.append(Worker(gpu_job_list[i], q, done, term, i, logging, val, overrides, abs_model, opt.model_file, abs_out, abs_snap, abs_tb))
 
     for worker in workers:
         worker_work= lambda: worker.work()

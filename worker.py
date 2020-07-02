@@ -89,9 +89,10 @@ class Worker_Base:
 
 
 class Worker(Worker_Base):
-    def __init__(self,gpu_id,que,done_list,terminal,id,logging, best_val, overrides, model_dir, output_dir, snapshot_dir, tb_dir):
+    def __init__(self,gpu_id,que,done_list,terminal,id,logging, best_val, overrides, model_dir, model_file, output_dir, snapshot_dir, tb_dir):
         super().__init__(gpu_id,que,done_list,terminal,id,logging, best_val)
         self.model_dir = model_dir
+        self.model_file = model_file
         self.output_dir = output_dir
         self.snapshot_dir = snapshot_dir
         self.tb_dir = tb_dir
@@ -117,7 +118,7 @@ class Worker(Worker_Base):
             if not os.path.exists(os.path.join(self.output_dir,name)):
                 os.makedirs(os.path.join(self.output_dir,name))
 
-            cmd = ' '.join(["cd", self.model_dir, ";", "python", "main.py", "--id={}".format(name)])
+            cmd = ' '.join(["cd", self.model_dir, ";", "python", self.model_file, "--id={}".format(name)])
             cmd += " --output_dir=\"{}\"".format(os.path.join(self.output_dir,name))
             cmd += " --snapshot_dir=\"{}\"".format(self.snapshot_dir)
             cmd += " --tb_dir=\"{}\"".format(self.tb_dir)

@@ -10,29 +10,29 @@ CONF = dict()
 
 
 
-server_capacity = [2,2]
+server_capacity = [1,]
 
 
-CONF['Diters'] = [3,5,8]
-CONF['SEED'] = RANDOM
-CONF['ImageSize'] = [48,]
-CONF['Dset'] = ['stl10',]
+CONF['Diters'] = [5]
+CONF['SEED'] = [None, None, None, None, None]#RANDOM
+CONF['ImageSize'] = [32,]
+CONF['Dset'] = ['cifar10',]
 CONF['DataRoot'] = ['/DataSet/',]
 CONF['BS'] = [32]
-CONF['niter'] = [150,]
-CONF['nz'] = [128,200,256]
-CONF['LAMBDA'] = [3,5,8,10]
-CONF['LAMBDA2'] = [1, 2, 3]
+CONF['niter'] = [500,]
+CONF['nz'] = [128]
+CONF['LAMBDA'] = [5]
+CONF['LAMBDA2'] = [2]
 CONF['Factor_M'] = [0]
-CONF['PPO_iters'] = [5, 10, 15]
-CONF['max_grad_norm'] = [0.3, 0.5, 0.8]
-CONF['clip_param'] = [0.2, 0.3, 0.4]
-CONF['G_SIZE'] = [256, 512]
-CONF['D_SCALE'] = [1.3, 1.5, 1.7, 2.0]
-CONF['LR'] = [1e-4, 2e-4]
-CONF['beta1'] = [0.9, 0.95, 0.99]
-CONF['beta2'] = [0.3, 0.5, 0.8]
-CONF['checkpoints'] = [[(0.5/21, 4.0),],] #(1/21, 6.5), (3/21, 7.0), (5/21, 7.4), (9/21, 7.6), (12/21, 7.8), (15/21, 7.9), (20/21, 8.0)],]
+CONF['PPO_iters'] = [5]
+CONF['max_grad_norm'] = [0.5]
+CONF['clip_param'] = [0.4]
+CONF['G_SIZE'] = [256]
+CONF['D_SCALE'] = [1.3]
+CONF['LR'] = [1.5e-4]
+CONF['beta1'] = [0.95]
+CONF['beta2'] = [0.5]
+CONF['checkpoints'] = [[(0.5/21, 1.0),],] #(1/21, 6.5), (3/21, 7.0), (5/21, 7.4), (9/21, 7.6), (12/21, 7.8), (15/21, 7.9), (20/21, 8.0)],]
 
 try:
     import shutil
