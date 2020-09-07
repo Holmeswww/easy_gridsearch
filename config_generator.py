@@ -33,7 +33,7 @@ for k,d in BIND.items():
 def get_name(D):
     format_string = "{}__{}_{}"
     keys = ['loss_type','temperature','temp_scale']
-    return format_string.format([D[k] for k in keys])
+    return format_string.format(*[D[k] for k in keys])
 
 def is_valid(D):
     for k,v in constraints.items():
