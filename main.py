@@ -18,7 +18,7 @@ READ_INTERVAL = 1200
 
 class Master:
 
-    def __init__(self, q, bestScore, done_list, term, start_time, opt):
+    def __init__(self, q, bestScore, done_list, term, start_time, opt, job_id):
         self.done_list=done_list
         self.terminal = term
         self.start_time = start_time
@@ -29,6 +29,7 @@ class Master:
         self.width = term.width
         self.bestScore = bestScore
         self.q = q
+        self.job_id = id
 
         if not os.path.exists(self.opt.output_dir):
             os.makedirs(self.opt.output_dir)
@@ -51,12 +52,13 @@ class Master:
             self.height = self.terminal.height
             self.width = self.terminal.width
             print(self.terminal.clear)
-        stat_string = "Que size: {} | Done size: {}".format(len(self.q.list), len(self.done_list.list))
+        stat_string = "Qued: {} | Done: {}".format(len(self.q.list), len(self.done_list.list))
+        id_string = "JobID: {}".format(self.job_id)
         timestring = "Uptime: " + display_time(time.time() - self.start_time)
         timestring += " | Avg job time: {}".format("inf" if len(self.done_list.list)==0 else display_time((time.time() - self.start_time)//len(self.done_list.list)))
         with self.terminal.location(0, self.terminal.height - 1):
             print(self.terminal.clear_eol, end = "")
-            print(timestring + " | " + stat_string + " | " + str(s), end = "")
+            print(id_string + " | " + timestring + " | " + stat_string + " | " + str(s), end = "")
             sys.stdout.flush()
 
     def dbgprint(self, *s):
@@ -178,7 +180,7 @@ if __name__ == '__main__':
                         help='timestamp to resume')
     parser.add_argument('--fresh', type=int, default=0,
                         help='start fresh')
-    parser.add_argument('--name', type=str, default=0,
+    parser.add_argument('--name', type=str, default="parameter search",
                         help='parameter search')
 
     logging.basicConfig(level=logging.DEBUG,
@@ -233,7 +235,7 @@ if __name__ == '__main__':
     q = SafeList()
     done = SafeList()
     val = SafeValue(0, lambda x, y: x>=y)
-    master=Master(q, val, done, term, T, opt)
+    master=Master(q, val, done, term, T, opt, parentjob.id)
     signal.signal(signal.SIGINT, master.signal_handler)
     reader=Reader(q, done, term, T, opt)
     # signal.signal(signal.SIGINT, reader.signal_handler)

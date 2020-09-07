@@ -6,33 +6,42 @@ from tqdm import tqdm
 import os
 RANDOM = [None,]
 CONF = dict()
+BIND = dict()
 
 
 
 
-server_capacity = [2,2]
+server_capacity = [3,2,2]
 
 
-CONF['Diters'] = [3,5,8]
-CONF['SEED'] = RANDOM
-CONF['ImageSize'] = [48,]
-CONF['Dset'] = ['stl10',]
-CONF['DataRoot'] = ['/DataSet/',]
-CONF['BS'] = [32]
-CONF['niter'] = [150,]
-CONF['nz'] = [128,200,256]
-CONF['LAMBDA'] = [3,5,8,10]
-CONF['LAMBDA2'] = [1, 2, 3]
-CONF['Factor_M'] = [0]
-CONF['PPO_iters'] = [5, 10, 15]
-CONF['max_grad_norm'] = [0.3, 0.5, 0.8]
-CONF['clip_param'] = [0.2, 0.3, 0.4]
-CONF['G_SIZE'] = [256, 512]
-CONF['D_SCALE'] = [1.3, 1.5, 1.7, 2.0]
-CONF['LR'] = [1e-4, 2e-4]
-CONF['beta1'] = [0.9, 0.95, 0.99]
-CONF['beta2'] = [0.3, 0.5, 0.8]
-CONF['checkpoints'] = [[(0.5/21, 4.0),],] #(1/21, 6.5), (3/21, 7.0), (5/21, 7.4), (9/21, 7.6), (12/21, 7.8), (15/21, 7.9), (20/21, 8.0)],]
+BIND['loss_type'] = [
+    ('WWGAN',{}),
+    ('WGAN',{}),
+    ('rsgan',{'temp_scale':[1.]}),
+]
+CONF['temperature'] = [1,5,10,50,100,500,1000,5000]
+CONF['temp_scale'] = [1., 0.5, 0.1, 0.05, 0.01]
+
+constraints = dict()
+for k,d in BIND.items():
+    CONF[k]=[]
+    constraints[k]=[]
+    for v, c in d:
+        CONF[k].append(v)
+        constraints[k].append(c)
+
+def get_name(D):
+    format_string = "{}__{}_{}"
+    keys = ['loss_type','temperature','temp_scale']
+    return format_string.format([D[k] for k in keys])
+
+def is_valid(D):
+    for k,v in constraints.items():
+        # print(CONF,D)
+        for key, value in v[CONF[k].index(D[list(CONF.keys()).index(k)])].items():
+            if D[list(CONF.keys()).index(key)] not in value:
+                return False
+    return True
 
 try:
     import shutil
@@ -41,7 +50,8 @@ except:
     pass
 
 L = list(CONF.values())
-L = list(itertools.product(*L))
+L = list(filter(is_valid, itertools.product(*L)))
+
 shuffle(L)
 
 print("Splitting {} jobs".format(len(L)))

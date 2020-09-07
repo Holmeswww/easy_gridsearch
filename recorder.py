@@ -1,12 +1,16 @@
 import socket
 import time
+import json
+import requests
+import warnings
+warnings.filterwarnings("ignore")
 
 _TOKEN = "da25f78835beee476f53ec553b4af208"
 
 class ParentJob:
-    def __init__(self, name="parameter search"):
+    def _init(self, name="parameter search"):
         try:
-            x = requests.get('https://mine.yuewu.ml/api/', verify=False)
+            # x = requests.get('https://mine.yuewu.ml/api/', verify=False)
             url = 'https://mine.yuewu.ml/api/new_parent/'
             myobj = {'token': _TOKEN, 'name':name, 'hostname':socket.gethostname()}
             return_dict = json.loads(requests.post(url, data = myobj, verify=False).text)
@@ -15,6 +19,7 @@ class ParentJob:
             self.id = return_dict['id']
             return True
         except:
+            print("failure")
             return False
     
     def __init__(self, name="parameter search", retry = 10):
@@ -30,7 +35,7 @@ class ParentJob:
 class Job:
     def _init(self, parent_id=None, name="parameter search"):
         try:
-            x = requests.get('https://mine.yuewu.ml/api/', verify=False)
+            # x = requests.get('https://mine.yuewu.ml/api/', verify=False)
             url = 'https://mine.yuewu.ml/api/new_job/'
             if parent_id is None:
                 myobj = {'token': _TOKEN, 'name':name, 'hostname':socket.gethostname()}
