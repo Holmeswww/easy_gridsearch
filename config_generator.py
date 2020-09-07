@@ -69,6 +69,7 @@ with tqdm(total = len(L)) as pbar:
                     D[key] = randint(0, 1000000)
                 else:
                     D[key] = L[idx][i]
+            D['name']=get_name(D)
             with open('conf/{}/{}.yml'.format(server, idx), 'w') as outfile:
                 yaml.dump(D, outfile)
             idx+=1
