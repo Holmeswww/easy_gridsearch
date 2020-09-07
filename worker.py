@@ -3,7 +3,7 @@ PATTERN = "#####"
 
 class Worker_Base:
 
-    def __init__(self, gpu_id, que, done_list, terminal, id, logging, best_val):
+    def __init__(self, gpu_id, que, done_list, terminal, id, logging, best_val, info):
         from utils import Writer
         self.gpu_id=gpu_id
         self.que = que
@@ -14,6 +14,7 @@ class Worker_Base:
         self.log = logging
         self.best_val = best_val
         self.writer = Writer(terminal, 2 + self.id * 2)
+        self.parent_id = info['parent_id']
     
     def print(self,*args):
         with self.terminal.location(0, 1 + self.id * 2):
@@ -89,8 +90,8 @@ class Worker_Base:
 
 
 class Worker(Worker_Base):
-    def __init__(self,gpu_id,que,done_list,terminal,id,logging, best_val, overrides, model_dir, model_file, output_dir, snapshot_dir, tb_dir):
-        super().__init__(gpu_id,que,done_list,terminal,id,logging, best_val)
+    def __init__(self,gpu_id,que,done_list,terminal,id,logging, best_val, overrides, model_dir, model_file, output_dir, snapshot_dir, tb_dir, info):
+        super().__init__(gpu_id,que,done_list,terminal,id,logging, best_val, info)
         self.model_dir = model_dir
         self.model_file = model_file
         self.output_dir = output_dir

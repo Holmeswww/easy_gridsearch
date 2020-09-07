@@ -11,6 +11,7 @@ import signal
 from tqdm import tqdm
 import pickle
 from worker import Worker
+from recorder import ParentJob
 # import yaml
 READ_INTERVAL = 1200
 
@@ -177,6 +178,8 @@ if __name__ == '__main__':
                         help='timestamp to resume')
     parser.add_argument('--fresh', type=int, default=0,
                         help='start fresh')
+    parser.add_argument('--name', type=str, default=0,
+                        help='parameter search')
 
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s %(message)s',
@@ -184,6 +187,13 @@ if __name__ == '__main__':
                         filemode='w')
     opt = parser.parse_args()
 
+    parentjob = ParentJob(opt.name)
+    if not parentjob.success:
+        print(term.move(0,0) + "Error connecting to host for progress reporting.")
+        exit()
+    info = {
+        'parent_id':parentjob.id
+    }
 
     print(term.move(0,0) + "Welcome to easy_gridsearch! I'm able to see {} GPUs and {} CPUs.".format(torch.cuda.device_count(), multiprocessing.cpu_count()))
 
@@ -243,7 +253,7 @@ if __name__ == '__main__':
 
     workers = []
     for i in range(num_workers):
-        workers.append(Worker(gpu_job_list[i], q, done, term, i, logging, val, overrides, abs_model, opt.model_file, abs_out, abs_snap, abs_tb))
+        workers.append(Worker(gpu_job_list[i], q, done, term, i, logging, val, overrides, abs_model, opt.model_file, abs_out, abs_snap, abs_tb, info))
 
     for worker in workers:
         worker_work= lambda: worker.work()
