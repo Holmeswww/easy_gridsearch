@@ -29,7 +29,7 @@ class Master:
         self.width = term.width
         self.bestScore = bestScore
         self.q = q
-        self.job_id = id
+        self.job_id = job_id
 
         if not os.path.exists(self.opt.output_dir):
             os.makedirs(self.opt.output_dir)
