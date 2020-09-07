@@ -105,3 +105,4 @@ venv.bak/
 
 grid_search_*
 scripts
+trainer.log
