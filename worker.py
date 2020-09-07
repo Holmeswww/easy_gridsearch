@@ -123,6 +123,7 @@ class Worker(Worker_Base):
             cmd += " --output_dir=\"{}\"".format(os.path.join(self.output_dir,name))
             cmd += " --snapshot_dir=\"{}\"".format(self.snapshot_dir)
             cmd += " --tb_dir=\"{}\"".format(self.tb_dir)
+            cmd += " --parent_id={}".format(self.parent_id)
             
             self.execute(cmd)
             self.done_list.append(name)
