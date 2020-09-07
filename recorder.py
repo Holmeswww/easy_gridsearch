@@ -62,7 +62,7 @@ class Job:
     
     def _submit(self, metrics):
         try:
-            url = 'https://mine.yuewu.ml/api/submit_long/'
+            url = 'https://mine.yuewu.ml/api/submit/'
             myobj = {'token': _TOKEN, 'metrics':json.dumps(metrics),"job_id":self.id}
             return_dict = json.loads(requests.post(url, data = myobj, verify=False).text)
             if return_dict['success']:
