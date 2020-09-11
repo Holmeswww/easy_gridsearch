@@ -11,7 +11,7 @@ BIND = dict()
 
 
 
-server_capacity = [3,2,2]
+server_capacity = [3,2,2,2]
 
 
 BIND['loss_type'] = [
